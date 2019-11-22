@@ -4,6 +4,7 @@ import { catchError, tap } from 'rxjs/operators';
 import { throwError, BehaviorSubject } from 'rxjs';
 import { User } from './user.model';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 export interface AuthResponseData {
   kind: string;
@@ -24,11 +25,15 @@ export class AuthService {
 
   signup(email: string, password: string) {
     return this.http
-      .post<AuthResponseData>('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=replaceWithKey', {
-        email,
-        password,
-        returnSecureToken: true
-      })
+      .post<AuthResponseData>(
+        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' +
+          environment.firebaseAPIKey,
+        {
+          email,
+          password,
+          returnSecureToken: true
+        }
+      )
       .pipe(
         catchError(this.handleError),
         tap(responseData => {
@@ -45,7 +50,8 @@ export class AuthService {
   login(email: string, password: string) {
     return this.http
       .post<AuthResponseData>(
-        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=replaceWithKey',
+        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' +
+          environment.firebaseAPIKey,
         {
           email,
           password,
@@ -76,11 +82,18 @@ export class AuthService {
       return;
     }
 
-    const loadedUser = new User(userData.email, userData.id, userData._token, new Date(userData._tokenExpirationDate));
+    const loadedUser = new User(
+      userData.email,
+      userData.id,
+      userData._token,
+      new Date(userData._tokenExpirationDate)
+    );
 
     if (loadedUser.token) {
       this.user.next(loadedUser);
-      const expirationDuration = new Date(userData._tokenExpirationDate).getTime() - new Date().getTime();
+      const expirationDuration =
+        new Date(userData._tokenExpirationDate).getTime() -
+        new Date().getTime();
       this.autoLogout(expirationDuration);
     }
   }
@@ -101,7 +114,12 @@ export class AuthService {
     }, expirationDuration);
   }
 
-  private handleAuthentication(email: string, userId: string, token: string, expiresIn: number) {
+  private handleAuthentication(
+    email: string,
+    userId: string,
+    token: string,
+    expiresIn: number
+  ) {
     const expirationDate = new Date(new Date().getTime() + expiresIn * 1000);
     const user = new User(email, userId, token, expirationDate);
     this.user.next(user);
